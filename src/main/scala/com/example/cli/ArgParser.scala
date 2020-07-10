@@ -36,12 +36,12 @@ object ArgParser {
       .action((x, c) => c.copy(sqsQueueUrl = SqsQueueUrl(x)))
 
     opt[String]("metricsEndpointHost")
-      .text("Datadog agent host")
+      .text("Graphite agent host")
       .required()
       .action((x, c) => c.copy(metricsEndpointHost = x))
 
     opt[Int]("metricsEndpointPort")
-      .text("Datadog agent port")
+      .text("Graphite agent port")
       .required()
       .action((x, c) => c.copy(metricsEndpointPort = x))
 
