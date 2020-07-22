@@ -33,7 +33,7 @@ object Filter extends StrictLogging with Metrics {
   def perRouteStats(compiled: Endpoint.Compiled[Task]): Endpoint.Compiled[Task] = {
 
     def recordRouteFailures(trace: Trace, response: Either[Throwable, Response]) =
-      Task.delay {
+      Task {
         response.foreach { res =>
           res.status match {
             case Successful(_)  => metrics.meter(s"$trace.successes").mark()
@@ -43,16 +43,16 @@ object Filter extends StrictLogging with Metrics {
         }
       }
 
-    val now = Task.delay(Stopwatch.systemMillis())
+    val now = Task(Stopwatch.systemMillis())
     Endpoint.Compiled[Task] { req =>
       for {
         start <- now
-        _ <- Task.delay(metrics.meter(s"${req.path}.incoming_requests").mark())
+        _ <- Task(metrics.meter(s"${req.path}.incoming_requests").mark())
         traceAndResponse <- compiled(req)
         (trace, response) = traceAndResponse
         _ <- recordRouteFailures(trace, response)
         stop <- now
-        _ <- Task.delay(metrics.histogram(s"$trace.response_time") += (stop - start))
+        _ <- Task(metrics.histogram(s"$trace.response_time") += (stop - start))
       } yield {
         traceAndResponse
       }
@@ -62,7 +62,7 @@ object Filter extends StrictLogging with Metrics {
   def stats(compiled: Endpoint.Compiled[Task]): Endpoint.Compiled[Task] = {
 
     def recordIncomingRequest(req: Request) =
-      Task.delay {
+      Task {
         logger.debug(
           s"""description="Incoming request" request="$req" headers="${req.headerMap}" body="${req.contentString}" """
         )
@@ -70,7 +70,7 @@ object Filter extends StrictLogging with Metrics {
       }
 
     def recordRejected(response: Either[Throwable, Response]) =
-      Task.delay {
+      Task {
         response.foreach { res =>
           res.status match {
             case ClientError(_) => metrics.meter("client_failures").mark()
@@ -79,7 +79,7 @@ object Filter extends StrictLogging with Metrics {
         }
       }
 
-    val now = Task.delay(Stopwatch.systemMillis())
+    val now = Task(Stopwatch.systemMillis())
     Endpoint.Compiled[Task] { req =>
       for {
         start <- now
@@ -88,7 +88,7 @@ object Filter extends StrictLogging with Metrics {
         (_, response) = traceAndResponse
         _ <- recordRejected(response)
         stop <- now
-        _ <- Task.delay(metrics.histogram(s"response_time") += (stop - start))
+        _ <- Task(metrics.histogram(s"response_time") += (stop - start))
       } yield {
         traceAndResponse
       }
@@ -151,7 +151,7 @@ object KafkaIngestionServer extends TaskApp with Metrics with StrictLogging {
       sqsStorage: Storage,
       domain: String
     ) = {
-    val acquire = Task.delay {
+    val acquire = Task {
       val filters = Filter.perRouteStats _ andThen Filter.stats
       val api = LiveApi(kafkaStorage, sqsStorage, domain)
 
@@ -212,7 +212,7 @@ object KafkaIngestionServer extends TaskApp with Metrics with StrictLogging {
     def sqsAsyncClientBuilder =
       SqsAsyncClient.builder.httpClientBuilder(NettyNioAsyncHttpClient.builder())
 
-    val acquire = Task.delay(
+    val acquire = Task(
       params match {
         case ArgParser.CliArgs(_, _, _, _, _, Some(awsRegion), Some(sqsEndpoint), _, _) =>
           newSqsAsyncClientWithRegionAndEndpoint(awsRegion, sqsEndpoint)
