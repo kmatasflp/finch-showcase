@@ -37,7 +37,7 @@ trait Metrics extends DefaultInstrumented {
 
       val reporter = GraphiteReporter
         .forRegistry(metricRegistry)
-        .prefixedWith(s"$prefix.$containerId")
+        .prefixedWith(s"${prefix.str}.${containerId.str}")
         .convertRatesTo(TimeUnit.SECONDS)
         .convertDurationsTo(TimeUnit.MILLISECONDS)
         .filter(MetricFilter.ALL)

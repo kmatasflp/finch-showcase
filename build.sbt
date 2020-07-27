@@ -69,6 +69,7 @@ assemblyMergeStrategy in assembly := {
 }
 
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(cacheOutput = false)
+assemblyJarName in assembly := "finch-showcase.jar"
 
 enablePlugins(DockerPlugin)
 
@@ -76,29 +77,16 @@ dockerfile in docker := {
   // The assembly task generates a fat JAR file
   val artifact: File = assembly.value
   val artifactTargetPath = s"/app/${artifact.name}"
+  val runScript = new File("scripts/run.sh")
 
   // format: off
   new Dockerfile {
     from("openjdk:11-jre-slim")
     expose(8080)
-    add(artifact, artifactTargetPath)
+    copy(artifact, artifactTargetPath)
+    copy(runScript, "/app")
     entryPoint(
-      "java", "-cp", artifactTargetPath,
-      "-Xms2G",
-      "-Xmx2G",
-      "-XX:+PrintCommandLineFlags",
-      "-XX:MaxGCPauseMillis=100",
-      "-XX:+UnlockExperimentalVMOptions",
-      "-XX:+EnableJVMCI",
-      "-XX:+UseJVMCICompiler",
-      "com.example.KafkaIngestionServer",
-      "--outputTopic", "beacons",
-      "--sqsQueueUrl", "beacons-to-retry",
-      "--metricsEndpointPort", "2003",
-      "--metricsEndpointHost", "graphite.example.com",
-      "--containerId", "some-container-id",
-      "--domain", "localhost",
-      "--kafkaBootstrapServers", "kafka.example.com:9092"
+     "./app/run.sh"
     )
   }
   // format: on
