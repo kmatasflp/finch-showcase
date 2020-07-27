@@ -1,7 +1,7 @@
 # finch-showcase
 Used to showcase finch and functional effects in real world scenario
 
-To run locally
+To test locally
 
 1. Use docker compose
 ```
